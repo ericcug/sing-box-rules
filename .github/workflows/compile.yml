@@ -12,6 +12,8 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
+      with:
+        fetch-depth: 2  # 获取至少两个提交的历史记录
 
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -31,7 +33,8 @@ jobs:
 
     - name: Run compile.py for changed .txt files
       run: |
-        for file in $(git diff --name-only HEAD~1 HEAD | grep '\.txt$'); do
+        changed_files=$(git diff --name-only HEAD~1 HEAD -- '*.txt' || git diff --name-only HEAD -- '*.txt')
+        for file in $changed_files; do
           python compile.py "$file"
         done
 
