@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - '**/*.txt'
+  workflow_dispatch:
 
 jobs:
   compile:
