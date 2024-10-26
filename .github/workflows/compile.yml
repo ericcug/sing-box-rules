@@ -27,9 +27,10 @@ jobs:
 
     - name: Download sing-box
       run: |
-        wget https://github.com/SagerNet/sing-box/releases/download/v1.9.0/sing-box-1.9.0-linux-amd64v3.tar.gz
-        tar -xzf sing-box-1.9.0-linux-amd64v3.tar.gz
-        mv sing-box-1.9.0-linux-amd64v3/sing-box ./sing-box
+        LATEST_URL=$(curl -s https://api.github.com/repos/SagerNet/sing-box/releases/latest | grep "browser_download_url" | grep "linux-amd64.tar.gz" | cut -d '"' -f 4)
+        wget "$LATEST_URL" -O sing-box-latest-linux-amd64.tar.gz
+        tar -xzf sing-box-latest-linux-amd64.tar.gz
+        mv sing-box*/sing-box ./sing-box
         chmod +x ./sing-box
 
     - name: Run compile.py for changed .txt files
