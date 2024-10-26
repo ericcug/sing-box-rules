@@ -35,10 +35,18 @@ jobs:
 
     - name: Run compile.py for changed .txt files
       run: |
-        changed_files=$(git diff --name-only HEAD~1 HEAD -- '*.txt' || git diff --name-only HEAD -- '*.txt')
-        for file in $changed_files; do
-          python compile.py "$file"
-        done
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+        # 如果是手动触发，直接处理所有 .txt 文件
+          for file in *.txt; do
+            python compile.py "$file"
+          done
+        else
+          # 如果不是手动触发，仅处理有更改的 .txt 文件
+          changed_files=$(git diff --name-only HEAD~1 HEAD -- '*.txt' || git diff --name-only HEAD -- '*.txt')
+          for file in $changed_files; do
+            python compile.py "$file"
+          done
+        fi
 
     - name: Commit and push changes
       run: |
