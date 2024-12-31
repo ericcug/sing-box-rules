@@ -8,3 +8,10 @@ deepinstall.com
 anythinktech.com
 youzanyun.com
 toponad.com
+ocsp.apple.com
+ocsp2.apple.com
+valid.apple.com
+crl.apple.com
+certs.apple.com
+appattest.apple.com
+vpp.itunes.apple.com
