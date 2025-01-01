@@ -14,7 +14,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
-        fetch-depth: 2  # 获取至少两个提交的历史记录
+        fetch-depth: 2
 
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -35,25 +35,19 @@ jobs:
 
     - name: Run compile.py for changed .txt files
       run: |
-        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-        # 如果是手动触发，直接处理所有 .txt 文件
-          for file in *.txt; do
-            python compile.py "$file"
-          done
-        else
-          # 如果不是手动触发，仅处理有更改的 .txt 文件
-          changed_files=$(git diff --name-only HEAD~1 HEAD -- '*.txt' || git diff --name-only HEAD -- '*.txt')
-          for file in $changed_files; do
-            python compile.py "$file"
-          done
-        fi
+        for file in *.txt; do
+        	python compile.py "$file"
+        done
 
-    - name: Commit and push changes
+    - name: Create Release
       run: |
-        git config --global user.name 'github-actions[bot]'
-        git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-        git add '*.srs'
-        git commit -m 'Add compiled .srs files' || echo "No changes to commit"
-        git push
+        # Get current date for release tag
+        TAG=$(date +'%Y%m%d-%H%M%S')
+        
+        # Create release
+        gh release create $TAG \
+          --title "Rule Set Release $TAG" \
+          --notes "Automatically generated rule sets" \
+          *.srs
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
