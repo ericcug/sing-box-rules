@@ -42,7 +42,7 @@ jobs:
     - name: Create Release
       run: |
         # Fixed tag name
-        TAG="$date"
+        TAG=$date
         
         # Create release
         gh release create $TAG \
