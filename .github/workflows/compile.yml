@@ -39,14 +39,19 @@ jobs:
         	python compile.py "$file"
         done
 
+    - name: Delete all existing tags
+      run: |
+        git tag -l | xargs -n 1 git push --delete origin
+        git tag -l | xargs git tag -d
+      
     - name: Create Release
       run: |
-        # Get current date for release tag
-        TAG=$(date +'%Y%m%d-%H%M%S')
+        # Fixed tag name
+        TAG="newtag"
         
         # Create release
         gh release create $TAG \
-          --title "Rule Set Release $TAG" \
+          --title "$TAG" \
           --notes "Automatically generated rule sets" \
           *.srs
       env:
