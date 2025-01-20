@@ -38,16 +38,11 @@ jobs:
         for file in *.txt; do
         	python compile.py "$file"
         done
-
-    - name: Delete all existing tags
-      run: |
-        git tag -l | xargs -I {} git push --delete origin {}
-        git tag -l | xargs git tag -d
       
     - name: Create Release
       run: |
         # Fixed tag name
-        TAG="newtag"
+        TAG="$date"
         
         # Create release
         gh release create $TAG \
