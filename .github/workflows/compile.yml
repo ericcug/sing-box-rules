@@ -35,7 +35,7 @@ jobs:
 
     - name: Clone and process dnsmasq-china-list
       run: |
-        git clone https://github.com/felixonmars/dnsmasq-china-list.git dnsmasq-list
+        git clone --depth=1 https://github.com/felixonmars/dnsmasq-china-list.git dnsmasq-list
         sed -e 's|^server=/\(.*\)/114.114.114.114$$|\1|' dnsmasq-list/accelerated-domains.china.conf | grep -Ev -e '^#' -e '^$$' > accelerated-domains.china.txt
         sed -e 's|^server=/\(.*\)/114.114.114.114$$|\1|' dnsmasq-list/google.china.conf | grep -Ev -e '^#' -e '^$$' > google.china.txt
         sed -e 's|^server=/\(.*\)/114.114.114.114$$|\1|' dnsmasq-list/apple.china.conf | grep -Ev -e '^#' -e '^$$' > apple.china.txt
