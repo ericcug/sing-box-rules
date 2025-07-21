@@ -33,16 +33,26 @@ jobs:
         mv sing-box*/sing-box ./sing-box
         chmod +x ./sing-box
 
-    - name: Run compile.py for changed .txt files
+    - name: Clone and process dnsmasq-china-list
+      run: |
+        git clone https://github.com/felixonmars/dnsmasq-china-list.git dnsmasq-list
+        sed -e 's|^server=/\(.*\)/114.114.114.114$$|\1|' dnsmasq-list/accelerated-domains.china.conf | grep -Ev -e '^#' -e '^$$' > accelerated-domains.china.txt
+        sed -e 's|^server=/\(.*\)/114.114.114.114$$|\1|' dnsmasq-list/google.china.conf | grep -Ev -e '^#' -e '^$$' > google.china.txt
+        sed -e 's|^server=/\(.*\)/114.114.114.114$$|\1|' dnsmasq-list/apple.china.conf | grep -Ev -e '^#' -e '^$$' > apple.china.txt
+        
+    - name: Download anti-AD list
+      run: wget -O anti_ad_domains.txt https://anti-ad.net/domains.txt
+
+    - name: Run compile.py for all .txt files
       run: |
         for file in *.txt; do
-        	python compile.py "$file"
+            python compile.py "$file"
         done
       
     - name: Create Release
       run: |
         # Fixed tag name
-         TAG=$(date +'%Y%m%d')
+        TAG=$(date +'%Y%m%d')
         
         # Create release
         gh release create $TAG \
