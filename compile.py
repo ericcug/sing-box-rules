@@ -3,11 +3,15 @@ import json
 import subprocess
 import re
 import os
+import ipaddress
 
 def is_ip_address(line):
-    # 简单的IP地址正则表达式
-    ip_pattern = re.compile(r"^(?:[0-9]{1,3}\.){3}[0-9]{1,3}(?:/[0-9]{1,2})?$")
-    return ip_pattern.match(line) is not None
+    # 去掉可能的 CIDR 前缀部分，尝试解析成 IPv4 或 IPv6 网络/地址
+    try:
+        ipaddress.ip_network(line, strict=False)
+        return True
+    except ValueError:
+        return False
 
 def main(input_file):
     # 读取输入文件内容并忽略以#开头的行
