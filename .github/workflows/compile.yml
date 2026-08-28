@@ -34,6 +34,9 @@ jobs:
       run: |
         # Download upstream sources in parallel
         curl -sSL https://anti-ad.net/domains.txt -o anti_ad_domains.txt &
+        curl -sSL https://anti-ad.net/anti-ad-for-dnsmasq.conf -o anti-ad-for-dnsmasq.conf &
+        curl -sSL https://ispip.clang.cn/all_cn.txt -o china_ip_list.txt &
+        curl -sSL https://ispip.clang.cn/all_cn_ipv6.txt -o china_ip6_list.txt &
         curl -sSL https://raw.githubusercontent.com/felixonmars/dnsmasq-china-list/master/accelerated-domains.china.conf -o accelerated-domains.china.conf &
         curl -sSL https://raw.githubusercontent.com/felixonmars/dnsmasq-china-list/master/apple.china.conf -o apple.china.conf &
         curl -sSL https://raw.githubusercontent.com/felixonmars/dnsmasq-china-list/master/google.china.conf -o google.china.conf &
@@ -43,8 +46,8 @@ jobs:
         # Replace default 114.114.114.114 with 202.103.224.68 in dnsmasq configs
         sed -i 's/114\.114\.114\.114/202.103.224.68/g' accelerated-domains.china.conf apple.china.conf google.china.conf
 
-        # Generate merged dnsmasq.conf for dnsmasq direct loading
-        cat accelerated-domains.china.conf apple.china.conf google.china.conf bogus-nxdomain.china.conf > dnsmasq.conf
+        # Generate merged dnsmasq.conf for dnsmasq direct loading (including China domain acceleration and Anti-AD ad blocking)
+        cat accelerated-domains.china.conf apple.china.conf google.china.conf bogus-nxdomain.china.conf anti-ad-for-dnsmasq.conf > dnsmasq.conf
 
         # Extract domains for sing-box rule-set compilation
         sed -E 's|^server=/(.*)/[0-9.]+$|\1|' accelerated-domains.china.conf | grep -Ev -e '^#' -e '^$' > accelerated-domains.china.txt
@@ -74,4 +77,4 @@ jobs:
         gh release create "$TAG" \
           --title "$TITLE" \
           --notes "$NOTES" \
-          *.srs dnsmasq.conf accelerated-domains.china.conf apple.china.conf google.china.conf bogus-nxdomain.china.conf
+          *.srs dnsmasq.conf accelerated-domains.china.conf apple.china.conf google.china.conf bogus-nxdomain.china.conf anti-ad-for-dnsmasq.conf
