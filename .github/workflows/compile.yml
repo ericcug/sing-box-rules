@@ -1,10 +1,15 @@
-name: Compile .txt to .srs
+name: Compile and Release Rules
 
 on:
   push:
     paths:
       - '**/*.txt'
+      - 'compile.sh'
+      - '.github/workflows/compile.yml'
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   compile:
@@ -13,51 +18,57 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-      with:
-        fetch-depth: 2
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.9'
+    - name: Install sing-box
+      run: |
+        LATEST_TAG=$(curl -sSL "https://api.github.com/repos/SagerNet/sing-box/releases/latest" | jq -r .tag_name)
+        VERSION="${LATEST_TAG#v}"
+        echo "Installing sing-box ${LATEST_TAG}..."
+        curl -sSL "https://github.com/SagerNet/sing-box/releases/download/${LATEST_TAG}/sing-box-${VERSION}-linux-amd64.tar.gz" | sudo tar -xz --strip-components=1 -C /usr/local/bin "sing-box-${VERSION}-linux-amd64/sing-box"
+        sing-box version
 
-    - name: Install dependencies
+    - name: Fetch upstream rules and dnsmasq configs
       run: |
-        python -m pip install --upgrade pip
+        # Download upstream sources in parallel
+        curl -sSL https://anti-ad.net/domains.txt -o anti_ad_domains.txt &
+        curl -sSL https://raw.githubusercontent.com/felixonmars/dnsmasq-china-list/master/accelerated-domains.china.conf -o accelerated-domains.china.conf &
+        curl -sSL https://raw.githubusercontent.com/felixonmars/dnsmasq-china-list/master/apple.china.conf -o apple.china.conf &
+        curl -sSL https://raw.githubusercontent.com/felixonmars/dnsmasq-china-list/master/google.china.conf -o google.china.conf &
+        curl -sSL https://raw.githubusercontent.com/felixonmars/dnsmasq-china-list/master/bogus-nxdomain.china.conf -o bogus-nxdomain.china.conf &
+        wait
 
-    - name: Download sing-box
-      run: |
-        LATEST_URL=$(curl -s https://api.github.com/repos/SagerNet/sing-box/releases/latest | grep "browser_download_url" | grep "linux-amd64.tar.gz" | cut -d '"' -f 4)
-        wget "$LATEST_URL" -O sing-box-latest-linux-amd64.tar.gz
-        tar -xzf sing-box-latest-linux-amd64.tar.gz
-        mv sing-box*/sing-box ./sing-box
-        chmod +x ./sing-box
+        # Replace default 114.114.114.114 with 202.103.224.68 in dnsmasq configs
+        sed -i 's/114\.114\.114\.114/202.103.224.68/g' accelerated-domains.china.conf apple.china.conf google.china.conf
 
-    - name: Clone and process dnsmasq-china-list
-      run: |
-        git clone --depth=1 https://github.com/felixonmars/dnsmasq-china-list.git dnsmasq-list
-        sed -e 's|^server=/\(.*\)/114.114.114.114$$|\1|' dnsmasq-list/accelerated-domains.china.conf | grep -Ev -e '^#' -e '^$$' > accelerated-domains.china.txt
-        sed -e 's|^server=/\(.*\)/114.114.114.114$$|\1|' dnsmasq-list/google.china.conf | grep -Ev -e '^#' -e '^$$' > google.china.txt
-        sed -e 's|^server=/\(.*\)/114.114.114.114$$|\1|' dnsmasq-list/apple.china.conf | grep -Ev -e '^#' -e '^$$' > apple.china.txt
-        
-    - name: Download anti-AD list
-      run: wget -O anti_ad_domains.txt https://anti-ad.net/domains.txt
+        # Generate merged dnsmasq.conf for dnsmasq direct loading
+        cat accelerated-domains.china.conf apple.china.conf google.china.conf bogus-nxdomain.china.conf > dnsmasq.conf
 
-    - name: Run compile.py for all .txt files
+        # Extract domains for sing-box rule-set compilation
+        sed -E 's|^server=/(.*)/[0-9.]+$|\1|' accelerated-domains.china.conf | grep -Ev -e '^#' -e '^$' > accelerated-domains.china.txt
+        sed -E 's|^server=/(.*)/[0-9.]+$|\1|' apple.china.conf | grep -Ev -e '^#' -e '^$' > apple.china.txt
+        sed -E 's|^server=/(.*)/[0-9.]+$|\1|' google.china.conf | grep -Ev -e '^#' -e '^$' > google.china.txt
+
+    - name: Compile rule sets
       run: |
-        for file in *.txt; do
-            python compile.py "$file"
-        done
-      
-    - name: Create Release
-      run: |
-        # Fixed tag name
-        TAG=$(date +'%Y%m%d')
-        
-        # Create release
-        gh release create $TAG \
-          --title "$TAG" \
-          --notes "Automatically generated rule sets" \
-          *.srs
+        chmod +x ./compile.sh
+        ./compile.sh
+
+    - name: Publish Release
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        TAG="latest"
+        TITLE="Latest Rules ($(date -u +'%Y-%m-%d %H:%M:%S UTC'))"
+        NOTES="Automatically compiled sing-box rule sets and dnsmasq configurations. Updated at $(date -u +'%Y-%m-%d %H:%M:%S UTC')."
+
+        # Delete old releases if any to retain only the latest release
+        for old_tag in $(gh release list --limit 100 --json tagName -q '.[].tagName' 2>/dev/null || true); do
+          echo "Deleting old release: $old_tag"
+          gh release delete "$old_tag" --yes --cleanup-tag || true
+        done
+
+        # Create latest release
+        gh release create "$TAG" \
+          --title "$TITLE" \
+          --notes "$NOTES" \
+          *.srs dnsmasq.conf accelerated-domains.china.conf apple.china.conf google.china.conf bogus-nxdomain.china.conf
