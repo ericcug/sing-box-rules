@@ -40,14 +40,13 @@ jobs:
         curl -sSL https://raw.githubusercontent.com/felixonmars/dnsmasq-china-list/master/accelerated-domains.china.conf -o accelerated-domains.china.conf &
         curl -sSL https://raw.githubusercontent.com/felixonmars/dnsmasq-china-list/master/apple.china.conf -o apple.china.conf &
         curl -sSL https://raw.githubusercontent.com/felixonmars/dnsmasq-china-list/master/google.china.conf -o google.china.conf &
-        curl -sSL https://raw.githubusercontent.com/felixonmars/dnsmasq-china-list/master/bogus-nxdomain.china.conf -o bogus-nxdomain.china.conf &
         wait
 
         # Replace default 114.114.114.114 with 202.103.224.68 in dnsmasq configs
         sed -i 's/114\.114\.114\.114/202.103.224.68/g' accelerated-domains.china.conf apple.china.conf google.china.conf
 
         # Generate merged dnsmasq.conf for dnsmasq direct loading (including China domain acceleration and Anti-AD ad blocking)
-        cat accelerated-domains.china.conf apple.china.conf google.china.conf bogus-nxdomain.china.conf anti-ad-for-dnsmasq.conf > dnsmasq.conf
+        cat accelerated-domains.china.conf apple.china.conf google.china.conf anti-ad-for-dnsmasq.conf > dnsmasq.conf
 
         # Extract domains for sing-box rule-set compilation
         sed -E 's|^server=/(.*)/[0-9.]+$|\1|' accelerated-domains.china.conf | grep -Ev -e '^#' -e '^$' > accelerated-domains.china.txt
@@ -77,4 +76,4 @@ jobs:
         gh release create "$TAG" \
           --title "$TITLE" \
           --notes "$NOTES" \
-          *.srs dnsmasq.conf accelerated-domains.china.conf apple.china.conf google.china.conf bogus-nxdomain.china.conf anti-ad-for-dnsmasq.conf
+          *.srs dnsmasq.conf accelerated-domains.china.conf apple.china.conf google.china.conf anti-ad-for-dnsmasq.conf
